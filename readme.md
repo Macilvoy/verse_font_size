@@ -9,9 +9,17 @@ A custom verse UI widget that gives you more control over the appearance of text
 
 ## Font Generator Tool
 
+# Video Tutorial
+https://github.com/user-attachments/assets/ae77a667-796f-4448-a434-0f9d44342080
+
+
 Comes with a Python tool that converts Google Fonts into individual character images so they can be used for custom UI text widgets in UEFN/Verse.
 
 ## Features
+
+
+
+
 
 - Supports any font from Google Fonts (maybe any)
 - Generate individual PNG images for each character
