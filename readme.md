@@ -1,6 +1,7 @@
 # Custom Verse Text Widget
 
 A custom verse UI widget that gives you more control over the appearance of texts in your UEFN UIs.
+(the code for the custom text widget is inside 'customizable_text_widget.verse'
 
 ## Features
 - Acts like a normal text widget, meaning that all the already existing functions that can be called on a normal text widget can be called on this widget as well!
