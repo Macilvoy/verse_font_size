@@ -1,0 +1,7 @@
+{
+    "font_name": "Roboto",
+    "font_size": 64,
+    "image_size": 128,
+    "output_folder": "perm_marker",
+    "characters": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?/\\ "
+}

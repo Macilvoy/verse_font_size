@@ -1,0 +1,15 @@
+*
+
+
+!.gitignore
+!readme.md
+
+
+!font_tool/
+!font_tool/**
+
+
+font_tool/__pycache__/
+font_tool/*.pyc
+font_tool/output/
+font_tool/fonts/
