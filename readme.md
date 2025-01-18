@@ -31,7 +31,7 @@ Comes with a Python tool that converts Google Fonts into individual character im
 1. Clone the repository:
 ```bash
 git clone https://github.com/imcouri/verse_font_size.git
-cd verse_font_size
+cd verse_font_size/font_tool
 ```
 
 2. Install the required packages:
