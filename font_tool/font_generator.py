@@ -179,7 +179,7 @@ def create_character_image(char, font, image_size, output_folder, case_prefix=''
     if char == ' ':
         actual_width = image_size
         image = Image.new('RGBA', (actual_width, image_size), (0, 0, 0, 0))
-        filename = f"custom_font_{case_prefix}space"
+        filename = f"custom_font_S_space"
         image.save(os.path.join(output_folder, f"{filename}.png"))
         return
 
@@ -258,18 +258,23 @@ def generate_character_mapping(characters, output_folder):
     mapping = "(InChar : char).ToImage():texture=\n    case(InChar):\n"
     
     for char in characters:
-        # Get character names using the existing char_name_map from create_character_image
-        lower_char_name = char_name_map.get(char.lower(), char.lower())
-        upper_char_name = char_name_map.get(char.upper(), char.upper())
-        
-        # Lowercase mapping
-        mapping += f"        '{char.lower()}' => {output_folder}.custom_font_L_{lower_char_name}\n"
-        # Uppercase mapping
-        mapping += f"        '{char.upper()}' => {output_folder}.custom_font_U_{upper_char_name}\n"
+        if char.isalpha():
+            # Get character names using the existing char_name_map from create_character_image
+            lower_char_name = char_name_map.get(char.lower(), char.lower())
+            upper_char_name = char_name_map.get(char.upper(), char.upper())
+
+
+            # Lowercase mapping
+            mapping += f"        '{char.lower()}' => {output_folder}.custom_font_L_{lower_char_name}\n"
+            # Uppercase mapping
+            mapping += f"        '{char.upper()}' => {output_folder}.custom_font_U_{upper_char_name}\n"
+        else:
+            symbol_char_name = char_name_map.get(char, char)
+            mapping += f"        '{char}' => {output_folder}.custom_font_S_{symbol_char_name}\n"
     
 
 
-    mapping += f"        _ => {output_folder}.custom_font_L_space\n"
+    mapping += f"        _ => {output_folder}.custom_font_S_space\n"
     # Write the mapping to a file
     with open('../character_mapping.txt', 'w') as f:
         f.write(mapping)
@@ -294,25 +299,36 @@ def main():
 
     # Generate images for each character in both cases
     for char in config['characters']:
-        # Generate lowercase
-        create_character_image(
-            char.lower(),
-            font,
-            config['image_size'],
-            config['output_folder'],
-            'L_'
-        )
-        print(f"Generated image for character: {char.lower()}")
+        if char.isalpha():
+            # Generate lowercase
+            create_character_image(
+                char.lower(),
+                font,
+                config['image_size'],
+                config['output_folder'],
+                'L_'
+            )
+            print(f"Generated image for character: {char.lower()}")
 
-        # Generate uppercase
-        create_character_image(
-            char.upper(),
-            font,
-            config['image_size'],
-            config['output_folder'],
-            'U_'
-        )
-        print(f"Generated image for character: {char.upper()}")
+            # Generate uppercase
+            create_character_image(
+                char.upper(),
+                font,
+                config['image_size'],
+                config['output_folder'],
+                'U_'
+            )
+            print(f"Generated image for character: {char.upper()}")
+
+        else:
+            create_character_image(
+                char,
+                font,
+                config['image_size'],
+                config['output_folder'],
+                'S_'
+            )
+            print(f"Generated image for character: {char}")
 
     # Clean up the temporary font file
     if 'font_path' in locals():

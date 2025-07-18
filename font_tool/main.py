@@ -7,6 +7,7 @@ import platform
 import requests
 import re
 import pyperclip
+# Assuming these are in a local file as per your original code
 from font_generator import download_google_font, create_character_image, char_name_map, generate_character_mapping
 
 def open_folder(path):
@@ -59,70 +60,83 @@ def validate_font_name(input_text):
 
 def check_font(input_text):
     """Gradio wrapper for font validation"""
+    if not input_text:
+        return "", ""
     is_valid, font_name, message = validate_font_name(input_text)
     return message, font_name if is_valid else input_text
 
-def generate_font_images(font_name, font_size, image_size, output_folder, characters):
-    # Validate font first
-    is_valid, validated_font_name, message = validate_font_name(font_name)
-    if not is_valid:
-        return None, message, "Font validation failed"
+# MODIFIED: A corrected version of the function to fix the error
+
+def generate_font_images(font_name, local_font, font_size, image_size, output_folder, characters):
+    font_path = None
+    validated_font_name = "local_font"
+    is_temp_font = False # Flag to check if we need to delete the font file later
+
+    # Logic to prioritize local font file over Google Font name
+    if local_font is not None:
+        font_path = local_font.name
+        validated_font_name = os.path.splitext(os.path.basename(font_path))[0]
+    elif font_name:
+        is_valid, validated_font_name, message = validate_font_name(font_name)
+        if not is_valid:
+            return [], message, "Font validation failed"
+        font_path = download_google_font(validated_font_name)
+        is_temp_font = True
+    else:
+        return [], "Please provide a font by name or by uploading a file.", "No font specified"
 
     try:
-        # Create output folder if it doesn't exist
         if not os.path.exists(output_folder):
             os.makedirs(output_folder)
 
-        # Download and load the Google Font
-        font_path = download_google_font(validated_font_name)
-        font = ImageFont.truetype(font_path, font_size)
+        # Convert sizes to integers, just in case
+        font_size_int = int(font_size)
+        image_size_int = int(image_size)
+
+        font = ImageFont.truetype(font_path, font_size_int)
 
         generated_images = []
-        # Generate images for each character in both cases
         for char in characters:
-            # Generate lowercase
-            create_character_image(
-                char.lower(),
-                font,
-                image_size,
-                output_folder,
-                'L_'
-            )
-            
-            # Generate uppercase
-            create_character_image(
-                char.upper(),
-                font,
-                image_size,
-                output_folder,
-                'U_'
-            )
+            if char.isalpha():
+                # FIX: Pass 'image_size_int' directly, not a tuple
+                create_character_image(char.lower(), font, image_size_int, output_folder, 'L_')
+                create_character_image(char.upper(), font, image_size_int, output_folder, 'U_')
 
-            # Load and append the generated images for preview
-            lower_char_name = char_name_map.get(char.lower(), char.lower())
-            upper_char_name = char_name_map.get(char.upper(), char.upper())
-            
-            lower_path = os.path.join(output_folder, f"custom_font_L_{lower_char_name}.png")
-            upper_path = os.path.join(output_folder, f"custom_font_U_{upper_char_name}.png")
-            
-            if os.path.exists(lower_path):
-                generated_images.append(Image.open(lower_path))
-            if os.path.exists(upper_path):
-                generated_images.append(Image.open(upper_path))
+                # Load and append the generated images for preview
+                lower_char_name = char_name_map.get(char.lower(), char.lower())
+                upper_char_name = char_name_map.get(char.upper(), char.upper())
 
-        # Clean up the temporary font file
-        try:
-            os.unlink(font_path)
-        except:
-            pass
+                lower_path = os.path.join(output_folder, f"custom_font_L_{lower_char_name}.png")
 
-        # Generate the mapping file
+                upper_path = os.path.join(output_folder, f"custom_font_U_{upper_char_name}.png")
+            
+                paths_to_add = set()
+                if os.path.exists(lower_path): paths_to_add.add(lower_path)
+                if os.path.exists(upper_path): paths_to_add.add(upper_path)
+            else:
+                # FIX: Pass 'image_size_int' directly, not a tuple
+                create_character_image(char, font, image_size_int, output_folder, 'S_')
+                
+                # Load and append the generated images for preview
+                symbol_char_name = char_name_map.get(char, char)
+
+                symbol_path = os.path.join(output_folder, f"custom_font_S_{symbol_char_name}.png")
+            
+                paths_to_add = set()
+                if os.path.exists(symbol_path): paths_to_add.add(symbol_path)
+            for path in paths_to_add:
+                generated_images.append(Image.open(path))
+
+        if is_temp_font and font_path:
+            try:
+                os.unlink(font_path)
+            except OSError as e:
+                print(f"Note: Could not delete temp font file: {e}")
+
         generate_character_mapping(characters, output_folder)
-        
-        # Read the mapping file
         mapping_content = read_mapping_file()
         
-        return generated_images, "Font images generated successfully!", mapping_content
+        return generated_images, f"Success! Generated images for '{validated_font_name}'.", mapping_content
     except Exception as e:
         return None, f"Error: {str(e)}", "Error generating character mapping"
 
@@ -132,52 +146,38 @@ def copy_to_clipboard(text):
     return "✓ Mapping copied to clipboard!"
 
 # Create the Gradio interface
-with gr.Blocks(title="Google Font to Images Generator") as iface:
+with gr.Blocks(title="Font to Images Generator") as iface:
     gr.Markdown("""
-    # Google Font to Images Generator
-    
-    ### Instructions:
-    1. Enter a Google Font name OR paste a Google Fonts URL (e.g., https://fonts.google.com/specimen/Roboto)
-    2. Click "Check Font" to validate the font name
-    3. Adjust font size and image size if needed
-    4. Specify an output folder name
-    5. Click "Generate Images" to create the font images
-    6. Use "Open Output Folder" to view the generated files
-    7. Copy the character mapping to clipboard using "📋 Copy"
-    8. Put the folder with images in your UEFN project's content folder
-    9. Paste the character mappings copied at the bottom of the code (look for "CHARACTER MAPPING" in the code)
-    
-    ### Notes:
-    - Font names are case-sensitive
-    - You can paste the full Google Fonts URL instead of the font name
-    - The character mapping will be generated automatically
-    - Images are generated with transparent backgrounds
-    - You may need to adjust specific images manually
+    # Font to Images Generator
+    Enter a Google Font name OR upload a local font file.
     """)
     
     with gr.Row():
         # Left Column - Input Controls
         with gr.Column():
-            # Font Selection Section
             with gr.Group():
-                gr.Markdown("### Font Selection")
+                gr.Markdown("### 1. Choose Font")
                 font_name = gr.Textbox(
-                    label="Font Name or Google Fonts URL", 
+                    label="Google Font Name or URL", 
                     value="Roboto",
-                    placeholder="Enter font name or paste Google Fonts URL"
+                    placeholder="e.g., 'Roboto' or a Google Fonts URL"
                 )
                 with gr.Row():
                     check_btn = gr.Button("Check Font", size="sm", variant="secondary")
                     font_status = gr.Textbox(
-                        label="Status", 
-                        interactive=False,
-                        show_label=False,
-                        container=False
+                        label="Status", interactive=False, show_label=False, container=False
                     )
-            
-            # Settings Section
+                
+                gr.Markdown("<p style='text-align: center; margin: 5px;'>OR</p>")
+                
+                # NEW: File uploader for local fonts
+                local_font_upload = gr.File(
+                    label="Upload Local Font (.ttf, .otf)",
+                    file_types=[".ttf", ".otf"]
+                )
+
             with gr.Group():
-                gr.Markdown("### Settings")
+                gr.Markdown("### 2. Settings")
                 with gr.Row():
                     font_size = gr.Number(label="Font Size", value=64, container=True)
                     image_size = gr.Number(label="Image Size", value=128, container=True)
@@ -188,61 +188,40 @@ with gr.Blocks(title="Google Font to Images Generator") as iface:
                     lines=3
                 )
             
-            # Action Buttons
             with gr.Row():
-                generate_btn = gr.Button("Generate Images", variant="primary")
+                generate_btn = gr.Button("3. Generate Images", variant="primary")
                 open_folder_btn = gr.Button("Open Output Folder", variant="secondary")
         
         # Right Column - Output Display
         with gr.Column():
-            # Preview Section
             with gr.Group():
                 gr.Markdown("### Preview")
-                gallery = gr.Gallery(label="Generated Images", show_label=False)
-                status = gr.Textbox(label="Status", show_label=False)
+                gallery = gr.Gallery(label="Generated Images", show_label=False, columns=8, height="auto")
+                status = gr.Textbox(label="Status", show_label=False, interactive=False)
             
-            # Mapping Section
             with gr.Group():
                 gr.Markdown("### Character Mapping")
                 with gr.Row():
                     mapping = gr.Textbox(
-                        label="Generated Mapping", 
-                        value=read_mapping_file(),
-                        lines=10,
-                        max_lines=10,
-                        show_label=False
+                        label="Generated Mapping", value=read_mapping_file(), lines=10, max_lines=10, show_label=False
                     )
                     copy_btn = gr.Button("📋 Copy", size="sm")
                 copy_status = gr.Textbox(
-                    label="Copy Status",
-                    show_label=False,
-                    container=False
+                    label="Copy Status", show_label=False, container=False, interactive=False
                 )
     
     # Event handlers
-    check_btn.click(
-        fn=check_font,
-        inputs=[font_name],
-        outputs=[font_status, font_name]
-    )
+    check_btn.click(fn=check_font, inputs=[font_name], outputs=[font_status, font_name])
     
+    # MODIFIED: Add 'local_font_upload' to the inputs list
     generate_btn.click(
         fn=generate_font_images,
-        inputs=[font_name, font_size, image_size, output_folder, characters],
+        inputs=[font_name, local_font_upload, font_size, image_size, output_folder, characters],
         outputs=[gallery, status, mapping]
     )
     
-    open_folder_btn.click(
-        fn=open_folder,
-        inputs=[output_folder],
-        outputs=[status]
-    )
-    
-    copy_btn.click(
-        fn=copy_to_clipboard,
-        inputs=[mapping],
-        outputs=[copy_status]
-    )
+    open_folder_btn.click(fn=open_folder, inputs=[output_folder], outputs=[status])
+    copy_btn.click(fn=copy_to_clipboard, inputs=[mapping], outputs=[copy_status])
 
 if __name__ == "__main__":
     iface.launch()

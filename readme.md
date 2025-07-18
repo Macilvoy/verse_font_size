@@ -15,14 +15,14 @@ A custom verse UI widget that gives you more control over the appearance of text
 https://github.com/user-attachments/assets/ae77a667-796f-4448-a434-0f9d44342080
 
 
-Comes with a Python tool that converts Google Fonts into individual character images so they can be used for custom UI text widgets in UEFN/Verse.
+Comes with a Python tool that converts Fonts into individual character images so they can be used for custom UI text widgets in UEFN/Verse.
 
 ## Features
 
 
 
 
-
+- Supports local fonts (NEW!)
 - Supports any font from Google Fonts (maybe any)
 - Generate individual PNG images for each character
 - Support for uppercase, lowercase, numbers, and special characters
@@ -30,6 +30,7 @@ Comes with a Python tool that converts Google Fonts into individual character im
 - Transparent backgrounds
 - Automatic verse character mapping generation
 - Simple user-friendly GUI interface
+
 
 ## Prerequisites
 
@@ -97,7 +98,8 @@ The generator creates:
 Images are named using the format:
 - Uppercase: `custom_font_U_[char].png`
 - Lowercase: `custom_font_L_[char].png`
-- Special characters use descriptive names (e.g., `custom_font_L_exclamation.png`)
+- Symbols: `custom_font_S_[char].png`
+- Special characters use descriptive names (e.g., `custom_font_S_exclamation.png`)
 - *NOTE : Using custom characters that are not included in this tool by default may cause naming issues inside UEFN or even the auto generated wrapper function.
 
 ## Configuration
